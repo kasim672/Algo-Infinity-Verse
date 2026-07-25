@@ -268,6 +268,13 @@ const visualizers = [
 
   // ── Graph Algorithms ──
   {
+    name: 'Bitmask DP: TSP',
+    path: '/pages/visualizers/bitmask-dp-visualizer/bitmask-dp-visualizer.html',
+    category: 'Graph Algorithms',
+    icon: 'fa-microchip',
+    desc: 'Solve Traveling Salesman using integer bit operations.',
+  },
+  {
     name: 'Max Flow Race: Edmonds-Karp vs Push-Relabel',
     path: '/pages/visualizers/max-flow-race-visualizer/max-flow-race-visualizer.html',
     category: 'Graph Algorithms',
@@ -775,6 +782,13 @@ const visualizers = [
 
   // ── Security & Cryptography ──
   {
+    name: 'Chinese Remainder Theorem',
+    path: '/pages/visualizers/chinese-remainder-theorem/chinese-remainder-theorem.html',
+    category: 'Security & Crypto',
+    icon: 'fa-clover',
+    desc: 'Reconstruct secrets from modular shadows and speed up RSA.',
+  },
+  {
     name: 'RSA Cryptography Visualizer',
     path: '/pages/visualizers/rsa-visualizer/rsa-visualizer.html',
     category: 'Security & Crypto',
@@ -826,8 +840,15 @@ const visualizers = [
 
   // ── Math, Geometry & Signals ──
   {
+    name: 'Haar Wavelet Transform',
+    path: '/pages/visualizers/haar-wavelet-visualizer/haar-wavelet-visualizer.html',
+    category: 'Math & Geometry',
+    icon: 'fa-wave-square',
+    desc: 'Visualize multi-resolution signal decomposition and JPEG2000 compression mechanics.',
+  },
+  {
     name: 'FFT Visualizer',
-    path: '/pages/visualizer/fft-visualizer/fft-visualizer.html',
+    path: '/pages/visualizers/fft-visualizer/fft-visualizer.html',
     category: 'Math & Geometry',
     icon: 'fa-chart-line',
     desc: 'Fast Fourier Transform — convert between time and frequency domains.',
