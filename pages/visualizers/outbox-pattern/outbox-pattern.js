@@ -26,11 +26,25 @@ const els = {
   animLayer: document.getElementById('animationLayer'),
   expTitle: document.getElementById('expTitle'),
   expText: document.getElementById('expText'),
+
+  btnDropMsg: document.getElementById('btnDropMsg'),
+  lagA: document.getElementById('lagA'),
+  lagB: document.getElementById('lagB'),
+  statusA: document.getElementById('statusA'),
+  statusB: document.getElementById('statusB'),
+  logA: document.getElementById('logA'),
+  logB: document.getElementById('logB'),
 };
 
 let orderCount = 0;
 let isProcessing = false;
+let isPublishing = false; // Guard: prevents relay from publishing the same event twice concurrently
 let relayInterval = null;
+
+let kafkaEvents = []; // stores objects { id: 'ORD-1001', payload: '...' }
+let consumerA = { offset: 0, cache: new Set(), interval: null, name: 'Inventory' };
+let consumerB = { offset: 0, cache: new Set(), interval: null, name: 'Notification' };
+let simulateDropMsg = false;
 
 function initOutbox() {
   els.btnCreate.addEventListener('click', handleCreateOrder);
@@ -45,13 +59,28 @@ function initOutbox() {
     }
   });
 
+  if (els.btnDropMsg) {
+    els.btnDropMsg.addEventListener('click', () => {
+      simulateDropMsg = true;
+      alert(
+        'Next message to consumers will be dropped (simulating network issue). Wait for redelivery!'
+      );
+    });
+  }
+
   // Start relay background process
   startRelay();
+  startConsumers();
 }
 
 function resetAll() {
+  // Stop any running relay before resetting state to avoid race conditions
+  // where a mid-flight publish cycle mutates DOM that has already been cleared.
+  stopRelay();
+
   orderCount = 0;
   isProcessing = false;
+  isPublishing = false; // Reset publish guard so the fresh relay starts clean
   els.ordersTable.innerHTML = '<div class="empty-state">No orders</div>';
   els.outboxTable.innerHTML = '<div class="empty-state">No pending events</div>';
   els.kafkaStream.innerHTML = '';
@@ -67,7 +96,16 @@ function resetAll() {
     `;
 
   els.btnCreate.disabled = false;
+
+  kafkaEvents = [];
+  consumerA = { offset: 0, cache: new Set(), interval: null, name: 'Inventory' };
+  consumerB = { offset: 0, cache: new Set(), interval: null, name: 'Notification' };
+  if (els.logA) els.logA.innerHTML = '';
+  if (els.logB) els.logB.innerHTML = '';
+  updateLag();
+
   startRelay();
+  startConsumers();
 }
 
 async function handleCreateOrder() {
@@ -132,14 +170,25 @@ async function handleCreateOrder() {
   els.btnCreate.disabled = false;
 }
 
+function stopRelay() {
+  if (relayInterval) {
+    clearInterval(relayInterval);
+    relayInterval = null;
+  }
+}
+
 function startRelay() {
-  if (relayInterval) clearInterval(relayInterval);
+  stopRelay(); // Always clear the previous interval before starting a new one
 
   relayInterval = setInterval(async () => {
-    if (isProcessing) return; // don't poll while animating main flow to avoid visual clutter
+    // Skip this tick if the main order flow is animating or a publish is already in-flight.
+    // Without the isPublishing guard the same PENDING row can be picked up by two
+    // consecutive ticks when the animation takes longer than the poll interval (2 s).
+    if (isProcessing || isPublishing) return;
 
     const pending = els.outboxTable.querySelector('.outbox-row[data-status="PENDING"]');
     if (pending) {
+      isPublishing = true; // Acquire publish lock
       els.relayProcess.className = 'relay-process relay-active';
       els.relayProcess.querySelector('.status-text').textContent = 'Publishing...';
 
@@ -162,12 +211,14 @@ function startRelay() {
       kEvent.textContent = payload;
       els.kafkaStream.prepend(kEvent);
 
+      const parsed = JSON.parse(payload);
+      kafkaEvents.push({ id: parsed.order_id, payload: payload });
+      updateLag();
+
       els.relayProcess.className = 'relay-process';
       els.relayProcess.querySelector('.status-text').textContent = 'Polling Outbox...';
 
-      els.expTitle.innerHTML =
-        '<i class="fas fa-check-circle" style="color:var(--color-relay)"></i> 3. Message Relayed';
-      els.expText.innerHTML = `The background Message Relay (e.g., a cron job or Debezium CDC) read the pending event from the Outbox and published it to the Kafka Broker successfully.`;
+      isPublishing = false; // Release publish lock
     }
   }, 2000);
 }
@@ -222,4 +273,63 @@ function animatePacket(fromEl, toEl, text) {
       resolve();
     };
   });
+}
+
+function updateLag() {
+  if (els.lagA) els.lagA.textContent = Math.max(0, kafkaEvents.length - consumerA.offset);
+  if (els.lagB) els.lagB.textContent = Math.max(0, kafkaEvents.length - consumerB.offset);
+}
+
+function logConsumer(logEl, msg, isDup = false) {
+  if (!logEl) return;
+  const div = document.createElement('div');
+  div.className = 'log-entry' + (isDup ? ' dup' : '');
+  div.textContent = msg;
+  logEl.prepend(div);
+}
+
+function startConsumers() {
+  if (consumerA.interval) clearInterval(consumerA.interval);
+  if (consumerB.interval) clearInterval(consumerB.interval);
+
+  const poll = async (consumer, statusEl, logEl) => {
+    if (consumer.offset < kafkaEvents.length) {
+      if (statusEl) statusEl.textContent = 'Processing...';
+      const event = kafkaEvents[consumer.offset];
+
+      if (simulateDropMsg) {
+        logConsumer(logEl, `[ERROR] Dropped msg ${event.id}. Lag increases.`);
+        simulateDropMsg = false;
+        if (statusEl) statusEl.textContent = 'Polling...';
+        updateLag();
+        return; // Missed the message, offset does not advance
+      }
+
+      await sleep(500); // Simulate processing time
+
+      if (consumer.cache.has(event.id)) {
+        logConsumer(logEl, `[IDEMPOTENT] Ignored dup ${event.id}`, true);
+      } else {
+        consumer.cache.add(event.id);
+        logConsumer(logEl, `[OK] Processed ${event.id}`);
+      }
+
+      consumer.offset++;
+      updateLag();
+      if (statusEl) statusEl.textContent = 'Polling...';
+    } else {
+      // Redelivery simulation chance (if caught up)
+      if (kafkaEvents.length > 0 && Math.random() < 0.05) {
+        // 5% chance of redelivery
+        const randomEvt = kafkaEvents[Math.floor(Math.random() * kafkaEvents.length)];
+        logConsumer(logEl, `[REDELIVERY] Rcvd ${randomEvt.id}`, true);
+        if (consumer.cache.has(randomEvt.id)) {
+          logConsumer(logEl, `[IDEMPOTENT] Ignored dup ${randomEvt.id}`, true);
+        }
+      }
+    }
+  };
+
+  consumerA.interval = setInterval(() => poll(consumerA, els.statusA, els.logA), 1500);
+  consumerB.interval = setInterval(() => poll(consumerB, els.statusB, els.logB), 2500); // slower consumer
 }
