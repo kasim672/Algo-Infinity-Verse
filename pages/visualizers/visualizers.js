@@ -61,6 +61,13 @@ const visualizers = [
   },
   // ── Sorting & Searching ──
   {
+    name: 'Ternary Search Visualizer',
+    path: '/pages/visualizers/ternary-search-visualizer/ternary-search-visualizer.html',
+    category: 'Sorting & Searching',
+    icon: 'fa-mountain',
+    desc: 'Find the maximum of a unimodal function by shrinking the search space by 1/3.',
+  },
+  {
     name: 'Sorting Visualizer',
     path: '/pages/visualizers/sorting-visualizer/sorting-visualizer.html',
     category: 'Sorting & Searching',
@@ -130,6 +137,13 @@ const visualizers = [
     icon: 'fa-arrows-to-dot',
     desc: 'Compare leftmost, rightmost, and insert-position binary search side-by-side with lo/hi/mid and mid±1 rules.',
   },
+  {
+  name: "Diffie Hellman Key Exchange Visualizer",
+  path: "/pages/visualizers/diffie-hellman-key-exchange/diffie-hellman-visualizer.html",
+  category: "Security & Crypto",
+  icon: "fa-key",
+  desc: "Interactive visualization of the Diffie Hellman key exchange protocol."
+},
   {
     name: 'Fast/Slow Pointer Simulator',
     path: '/pages/visualizers/fast-slow-pointer-simulator/fast-slow-pointer-simulator.html',
@@ -424,6 +438,13 @@ const visualizers = [
 
   // ── Dynamic Programming ──
   {
+    name: 'Patience Sorting (LIS)',
+    path: '/pages/visualizers/patience-sorting-visualizer/patience-sorting-visualizer.html',
+    category: 'Dynamic Programming',
+    icon: 'fa-layer-group',
+    desc: 'Visualize the O(n log n) Longest Increasing Subsequence algorithm using a beautifully visual card-sorting trick.',
+  },
+  {
     name: 'DP Visualizer',
     path: '/pages/visualizers/dp-visualizer/dp-visualizer.html',
     category: 'Dynamic Programming',
@@ -646,6 +667,18 @@ const visualizers = [
   },
 
   // ── Distributed Systems ──
+  {
+    name: 'Gossip-Based Failure Detection (SWIM Protocol)',
+    path: '/pages/visualizers/swim-protocol-visualizer/swim-protocol-visualizer.html',
+    category: 'Distributed Systems',
+    icon: 'fa-satellite-dish',
+    desc: 'Detect dead nodes efficiently without a central coordinator.',
+    name: 'Rendezvous Hashing (HRW)',
+    path: '/pages/visualizers/rendezvous-hashing-visualizer/rendezvous-hashing-visualizer.html',
+    category: 'Distributed Systems',
+    icon: 'fa-network-wired',
+    desc: 'Load balance perfectly without using any Consistent Hash Rings.',
+  },
   {
     name: 'Raft Simulator',
     path: '/pages/ai-features/raft-simulator/raft-simulator.html',
@@ -941,6 +974,13 @@ const visualizers = [
   },
 
   // ── Data Structures ──
+  {
+    name: 'Deterministic vs Randomized Skip List',
+    path: '/pages/visualizers/deterministic-skip-list-visualizer/deterministic-skip-list-visualizer.html',
+    category: 'Data Structures',
+    icon: 'fa-layer-group',
+    desc: 'See how structural invariants eliminate the need for coin flips.',
+  },
   {
     name: 'Linked List Visualizer',
     path: '/pages/visualizers/linked-list-visualizer/linked-list-visualizer.html',
